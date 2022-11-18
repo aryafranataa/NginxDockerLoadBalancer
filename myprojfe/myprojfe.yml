@@ -1,0 +1,75 @@
+# docker-compose.yml
+version: "3.8"
+services:
+  nginx:
+    container_name: nginx
+    build: ./docker/nginx
+    command: nginx -g "daemon off;"
+    links:
+      - php
+    ports:
+      - "80:80"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - ./src/myproj:/var/www/html/myproj
+  php:
+    container_name: php
+    build: ./docker/php
+    links:
+      - mariadb
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./src/myproj:/var/www/html/myproj
+    working_dir: /var/www/html/myproj
+  composer:
+    container_name: composer
+    image: composer/composer
+    volumes:
+      - ./src/myproj:/var/www/html/myproj
+    working_dir: /var/www/html/myproj
+    command: install
+  mariadb:
+    image: mariadb:10.7.4
+    container_name: mariadb
+    #build: ./docker/db
+    environment:
+      MYSQL_ROOT_PASSWORD: '20071993'
+      #MYSQL_DATABASE: myproj
+      MYSQL_USER: myproj
+      MYSQL_PASSWORD: 'testing123'
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/db/setup.sql:/docker-entrypoint-initdb.d/1.sql
+      - ./database/mysql:/var/lib/mysql
+      #- ./docker/db/setup.sql:/docker-entrypoint-initdb.d/1.sql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    links:
+      - mariadb
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8085:80
+  cache:
+    image: redis:7
+    container_name: redis
+    #command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    command: redis-server /usr/local/etc/redis/redis.conf
+    #links:
+      #- mariadb
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+  #redisearch:
+  #  image: "redislabs/redisearch:edge"
+  #  ports:
+  #    - "6379:6379"
+    
